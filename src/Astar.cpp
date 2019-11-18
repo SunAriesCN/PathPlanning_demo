@@ -1,7 +1,7 @@
 #include <iostream>
 #include <Eigen/Eigen>
-#include <stdio.h>      
-#include <math.h>    
+#include <stdio.h>
+#include <math.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -12,23 +12,23 @@
 using namespace std;
 using namespace cv;
 
-const int ALLOW_VERTEX_PASSTHROUGH = 1; //ÊÇ·ñÔÊĞíĞ±×Å×ß
-const int NODE_FLAG_CLOSED = -1; //¸Ã½ÚµãÔÚCLOSEÖĞ
-const int NODE_FLAG_UNDEFINED = 0; //¸Ã½ÚµãÃ»ÓĞ±éÀú¹ı
-const int NODE_FLAG_OPEN = 1;  //¸Ã½ÚµãÔÚOPENÖĞ
+const int ALLOW_VERTEX_PASSTHROUGH = 1; //æ˜¯å¦å…è®¸æ–œç€èµ°
+const int NODE_FLAG_CLOSED = -1; //è¯¥èŠ‚ç‚¹åœ¨CLOSEä¸­
+const int NODE_FLAG_UNDEFINED = 0; //è¯¥èŠ‚ç‚¹æ²¡æœ‰éå†è¿‡
+const int NODE_FLAG_OPEN = 1;  //è¯¥èŠ‚ç‚¹åœ¨OPENä¸­
 
-const int NODE_TYPE_ZERO = 0;  //¸Ã½Úµã¿ÉÒÔÍ¨ĞĞ
-const int NODE_TYPE_OBSTACLE = 1;  //¸Ã½ÚµãÓĞÕÏ°­
-const int NODE_TYPE_START = 2;  //¸Ã½ÚµãÎªÆğµã
-const int NODE_TYPE_END = 3;  //¸Ã½ÚµãÎªÖÕµã
+const int NODE_TYPE_ZERO = 0;  //è¯¥èŠ‚ç‚¹å¯ä»¥é€šè¡Œ
+const int NODE_TYPE_OBSTACLE = 1;  //è¯¥èŠ‚ç‚¹æœ‰éšœç¢
+const int NODE_TYPE_START = 2;  //è¯¥èŠ‚ç‚¹ä¸ºèµ·ç‚¹
+const int NODE_TYPE_END = 3;  //è¯¥èŠ‚ç‚¹ä¸ºç»ˆç‚¹
 
-//Ã¿¸öÏñËØ¶ÔÓ¦µØÍ¼ÖĞ½Úµã
+//æ¯ä¸ªåƒç´ å¯¹åº”åœ°å›¾ä¸­èŠ‚ç‚¹
 class MapNode {
 public:
 	int x = -1; 
 	int y = -1;
-	int h = 0; //Æô·¢Öµ
-	int g = 0; //ºÄÉ¢Öµ
+	int h = 0; //å¯å‘å€¼
+	int g = 0; //è€—æ•£å€¼
 	int type = NODE_TYPE_ZERO;
 	int flag = NODE_FLAG_UNDEFINED;
 	MapNode *parent = 0;
@@ -45,49 +45,49 @@ public:
 
 	int f() {
 		return g + h; //Astar
-		return g; //Ö»¿¼ÂÇºÄÉ¢Öµ£¬¼´ÎªDijkstra
+		return g; //åªè€ƒè™‘è€—æ•£å€¼ï¼Œå³ä¸ºDijkstra
 	}
 };
 
-//µØÍ¼ÎªopencvÉú³ÉµÄÍ¼Æ¬
+//åœ°å›¾ä¸ºopencvç”Ÿæˆçš„å›¾ç‰‡
 Mat Map; 
-//µØÍ¼´óĞ¡Îª300*300µÄÕı·½ĞÎ
+//åœ°å›¾å¤§å°ä¸º300*300çš„æ­£æ–¹å½¢
 int mapSize = 300; 
-//µØÍ¼ÖĞÃ¿¸ö½ÚµãµÄĞÅÏ¢ Ã¿¸öË÷Òı¶ÔÓ¦Ò»¸ö½Úµã  ¾ßÌå×ª»»·½Ê½Îªindex = 300*y+x£¬mapData[index]¼´Îª×ø±êxyµÄ½ÚµãNode
+//åœ°å›¾ä¸­æ¯ä¸ªèŠ‚ç‚¹çš„ä¿¡æ¯ æ¯ä¸ªç´¢å¼•å¯¹åº”ä¸€ä¸ªèŠ‚ç‚¹  å…·ä½“è½¬æ¢æ–¹å¼ä¸ºindex = 300*y+xï¼ŒmapData[index]å³ä¸ºåæ ‡xyçš„èŠ‚ç‚¹Node
 vector<MapNode> mapData; 
-//Open±í
+//Openè¡¨
 vector<MapNode *> openList;  
 
-MapNode *startNode; // Ö¸ÏòÆğµãNode
-MapNode *targetNode;// Ö¸ÏòÖÕµãNode
+MapNode *startNode; // æŒ‡å‘èµ·ç‚¹Node
+MapNode *targetNode;// æŒ‡å‘ç»ˆç‚¹Node
 
-MapNode *mapAt(int x, int y); //½«XY×ø±ê×ª»»Îª¶ÔÓ¦µÄË÷Òı
+MapNode *mapAt(int x, int y); //å°†XYåæ ‡è½¬æ¢ä¸ºå¯¹åº”çš„ç´¢å¼•
 
-vector<MapNode *> neighbors(MapNode *node);//Çóµ±Ç°½ÚµãµÄÁÚ¾Ó½Úµã
+vector<MapNode *> neighbors(MapNode *node);//æ±‚å½“å‰èŠ‚ç‚¹çš„é‚»å±…èŠ‚ç‚¹
 
-int computeH(MapNode *node1, MapNode *node2);//¼ÆËãH
+int computeH(MapNode *node1, MapNode *node2);//è®¡ç®—H
 
-int computeG(MapNode *node1, MapNode *node2);//¼ÆËãG
+int computeG(MapNode *node1, MapNode *node2);//è®¡ç®—G
 
-vector<MapNode *> Astar(); //Ñ°ÕÒÂ·¾¶Ö÷º¯Êı
+vector<MapNode *> Astar(); //å¯»æ‰¾è·¯å¾„ä¸»å‡½æ•°
 
 cv::Point2i cv_offset(float x, float y, int image_width, int image_height);
 
-void drawMap(); //µØÍ¼»æÖÆ
+void drawMap(); //åœ°å›¾ç»˜åˆ¶
 
-void drawPath(Mat &map, vector<MapNode *> path);  //»æÖÆ×îºóµÄÂ·¾¶
+void drawPath(Mat &map, vector<MapNode *> path);  //ç»˜åˆ¶æœ€åçš„è·¯å¾„
 
-void drawOpenList(); //»æÖÆOpenlistÖĞµÄµã
+void drawOpenList(); //ç»˜åˆ¶Openlistä¸­çš„ç‚¹
 
-using position = std::vector<std::array<float, 2>>; //´æ·Åxy×ø±êµÄvector£¬·½±ã»­Í¼
+using position = std::vector<std::array<float, 2>>; //å­˜æ”¾xyåæ ‡çš„vectorï¼Œæ–¹ä¾¿ç”»å›¾
 
 int main()
 {
-	//µØÍ¼»æÖÆ
+	//åœ°å›¾ç»˜åˆ¶
 	drawMap();
-	//µØÍ¼ÖĞÃ¿¸ö½ÚµãµÄĞÅÏ¢¡£300*300¹²ÓĞ90000¸ö½Úµã
+	//åœ°å›¾ä¸­æ¯ä¸ªèŠ‚ç‚¹çš„ä¿¡æ¯ã€‚300*300å…±æœ‰90000ä¸ªèŠ‚ç‚¹
 	mapData = vector<MapNode>(90000);
-	//¸ù¾İµØÍ¼ÖĞÃ¿¸öµãµÄÏñËØ»ñÈ¡¸ÃµãµÄĞÅÏ¢
+	//æ ¹æ®åœ°å›¾ä¸­æ¯ä¸ªç‚¹çš„åƒç´ è·å–è¯¥ç‚¹çš„ä¿¡æ¯
 	for (int y = 0; y < mapSize; y++) {
 		for (int x = 0; x < mapSize; x++) {
 			if (Map.at<Vec3b>(400 - y, 100 + x) == Vec3b(255, 255, 255)) {
@@ -116,14 +116,14 @@ int main()
 	cout << "startNode=(" << startNode->x << ", " << startNode->y << ")" << endl;
 	cout << "endNode=(" << targetNode->x << ", " << targetNode->y << ")" << endl;
 
-	openList.push_back(startNode);//°ÑÆğµã·ÅÈëopenlist
-	vector<MapNode *> path = Astar();//A*Ëã·¨Ñ°Â·
-	drawPath(Map, path); //»æÖÆ×îºóµÄÂ·¾¶
+	openList.push_back(startNode);//æŠŠèµ·ç‚¹æ”¾å…¥openlist
+	vector<MapNode *> path = Astar();//A*ç®—æ³•å¯»è·¯
+	drawPath(Map, path); //ç»˜åˆ¶æœ€åçš„è·¯å¾„
 
 	return 0;
 }
 
-////opencvÍ¼ÏñµÄ×ø±êºÍ±¾³ÌĞòÖĞMapµÄ×ø±ê¶¨Òå²»Í¬£¬ÓÃ¸Ãº¯Êı°ÑÒ»¸ö×ø±êµã×ª»»ÎªÍ¼ÏñÉÏµÄµã
+////opencvå›¾åƒçš„åæ ‡å’Œæœ¬ç¨‹åºä¸­Mapçš„åæ ‡å®šä¹‰ä¸åŒï¼Œç”¨è¯¥å‡½æ•°æŠŠä¸€ä¸ªåæ ‡ç‚¹è½¬æ¢ä¸ºå›¾åƒä¸Šçš„ç‚¹
 cv::Point2i cv_offset(
 	float x, float y, int image_width = 500, int image_height = 500) {
 	cv::Point2i output;
@@ -135,12 +135,12 @@ cv::Point2i cv_offset(
 };
 
 void drawMap() {
-	// ÉèÖÃ´°¿Ú
+	// è®¾ç½®çª—å£
 	Map = Mat::zeros(Size(500, 500), CV_8UC3);
-	Map.setTo(255);              // ÉèÖÃÆÁÄ»Îª°×É«
-	position start({ {50.0,50.0} });//Æğµã×ø±ê
-	position goal({ {250.0,250.0} });//ÖÕµã×ø±ê
-	// Ìí¼ÓÕÏ°­×ø±ê
+	Map.setTo(255);              // è®¾ç½®å±å¹•ä¸ºç™½è‰²
+	position start({ {50.0,50.0} });//èµ·ç‚¹åæ ‡
+	position goal({ {250.0,250.0} });//ç»ˆç‚¹åæ ‡
+	// æ·»åŠ éšœç¢åæ ‡
 	position ob({ {{0.0, 0.0}} });
 	for (int i = 1; i < mapSize; i++)
 	{
@@ -166,84 +166,84 @@ void drawMap() {
 	{
 		ob.push_back({ 200, float(i) });
 	}
-	//»æÖÆÕÏ°­ ºÚÉ«
+	//ç»˜åˆ¶éšœç¢ é»‘è‰²
 	for (unsigned int j = 0; j < ob.size(); j++) {
 		cv::circle(Map, cv_offset(ob[j][0], ob[j][1], Map.cols, Map.rows),
 			1, cv::Scalar(0, 0, 0), -2);
 	}
-	//»æÖÆÄ¿±ê À¶É«
+	//ç»˜åˆ¶ç›®æ ‡ è“è‰²
 	cv::circle(Map, cv_offset(goal[0][0], goal[0][1], Map.cols, Map.rows),
 		2, cv::Scalar(255, 0, 0), 2);
-	//»æÖÆÆğµã ÂÌÉ«
+	//ç»˜åˆ¶èµ·ç‚¹ ç»¿è‰²
 	cv::circle(Map, cv_offset(start[0][0], start[0][1], Map.cols, Map.rows),
 		2, cv::Scalar(0, 255, 0), 2);
 
 }
 
-//»æÖÆ×îÖÕµÄÂ·¾¶
+//ç»˜åˆ¶æœ€ç»ˆçš„è·¯å¾„
 void drawPath(Mat &map, vector<MapNode *> path) {
-	//Path´æ·ÅÁËÃ¿Ò»¸öÂ·¾¶ÉÏµÄµã
+	//Pathå­˜æ”¾äº†æ¯ä¸€ä¸ªè·¯å¾„ä¸Šçš„ç‚¹
 	for (int i = 0; i < path.size() - 1; i++) {
 		MapNode *node = path[i];
 		cv::circle(Map, cv_offset(node->x, node->y, Map.cols, Map.rows),
 			2, cv::Scalar(0, 200, 155), 2);
-		imshow("»­°å", Map);
-		waitKey(1);
+		imshow("ç”»æ¿", Map);
+		waitKey();
 		cout << "->(" << node->x << "," << node->y << ")";
 	}
-	imshow("»­°å", Map);
+	imshow("ç”»æ¿", Map);
 	waitKey();
 	cout << endl;
 }
 
-//»æÖÆOpenlistÖĞµÄµã
+//ç»˜åˆ¶Openlistä¸­çš„ç‚¹
 void drawOpenList() {
 	for (int i = 0; i < openList.size(); i++) {
 		MapNode *node = openList[i];
 		if (node == startNode || node == targetNode)continue;
 		cv::circle(Map, cv_offset(node->x, node->y, Map.cols, Map.rows),
 			2, cv::Scalar(210, 210, 210), 2);
-		imshow("»­°å", Map);
+		imshow("ç”»æ¿", Map);
 		waitKey(1);
 	}
 }
 
-//A*Ëã·¨
+//A*ç®—æ³•
 vector<MapNode *> Astar() {
-	vector<MapNode *> path; //¸ÃÊı×é´æ·ÅÂ·¾¶ÉÏµÄ½Úµã
+	vector<MapNode *> path; //è¯¥æ•°ç»„å­˜æ”¾è·¯å¾„ä¸Šçš„èŠ‚ç‚¹
 	cout << "Finding started!" << endl;
 	int iteration = 0;
 	MapNode *node;
 	MapNode *reversedPtr = 0;
 	while (openList.size() > 0) {
 		node = openList.at(0);
-		//ÕÒµ½openlistÖĞf(n)×îĞ¡µÄ½Úµã
+		//æ‰¾åˆ°openlistä¸­f(n)æœ€å°çš„èŠ‚ç‚¹
 		for (int i = 0, max = openList.size(); i < max; i++) {
 			if ((openList[i]->f() + openList[i]->h)<= (node->f() + node->h)) {
 				node = openList[i];
 			}
 		}
-		//°ÑÕâ¸ö½Úµã´Óopen±íÖĞÒÆ³ı£¬²¢ÇÒ±ê¼ÇÎªClose
+		//æŠŠè¿™ä¸ªèŠ‚ç‚¹ä»openè¡¨ä¸­ç§»é™¤ï¼Œå¹¶ä¸”æ ‡è®°ä¸ºClose
 		openList.erase(remove(openList.begin(), openList.end(), node), openList.end());
 		node->flag = NODE_FLAG_CLOSED;
 
-		//Èç¹ûµ½´ïÁËÄ¿±êµã£¬Ìø³öÑ­»·£¬reversedPtr¼ÇÎªÄ¿±êµã
+		//å¦‚æœåˆ°è¾¾äº†ç›®æ ‡ç‚¹ï¼Œè·³å‡ºå¾ªç¯ï¼ŒreversedPtrè®°ä¸ºç›®æ ‡ç‚¹
 		if (node == targetNode) {
 			cout << "Reached the target node." << endl;
 			reversedPtr = node;
 			break;
 		}
-		//ÕÒµ½µ±Ç°½ÚµãµÄÏàÁÚ½Úµã
+		//æ‰¾åˆ°å½“å‰èŠ‚ç‚¹çš„ç›¸é‚»èŠ‚ç‚¹
 		vector<MapNode *> neighborNodes = neighbors(node);
-		//±éÀúËùÓĞÏàÁÚ½Úµã
+		//éå†æ‰€æœ‰ç›¸é‚»èŠ‚ç‚¹
 		for (int i = 0; i < neighborNodes.size(); i++) {
 			MapNode *_node = neighborNodes[i];
-			//Èç¹ûÏàÁÚ½ÚµãÔÚclose£¨ÒÑ¾­·ÃÎÊ¹ı£©ÖĞ»òÕßÎªÕÏ°­Îï£¬¾ÍÌø¹ı£¬ÅĞ¶ÏÏÂÒ»¸öÏàÁÚ½Úµã
+			//å¦‚æœç›¸é‚»èŠ‚ç‚¹åœ¨closeï¼ˆå·²ç»è®¿é—®è¿‡ï¼‰ä¸­æˆ–è€…ä¸ºéšœç¢ç‰©ï¼Œå°±è·³è¿‡ï¼Œåˆ¤æ–­ä¸‹ä¸€ä¸ªç›¸é‚»èŠ‚ç‚¹
 			if (_node->flag == NODE_FLAG_CLOSED || _node->type == NODE_TYPE_OBSTACLE) {
 				continue;
 			}
-			int g = node->g + computeG(_node, node);//¼ÆËã¸ÃÏàÁÚ½ÚµãµÄºÄÉ¢Öµ
-			//Èç¹û¸ÃÏàÁÚ½Úµã²»ÔÚopenÖĞ£¬¾Í½«Æä¼ÓÈëopen
+			int g = node->g + computeG(_node, node);//è®¡ç®—è¯¥ç›¸é‚»èŠ‚ç‚¹çš„è€—æ•£å€¼
+			//å¦‚æœè¯¥ç›¸é‚»èŠ‚ç‚¹ä¸åœ¨openä¸­ï¼Œå°±å°†å…¶åŠ å…¥open
 			if (_node->flag != NODE_FLAG_OPEN) {
 				_node->g = g;
 				_node->h = computeH(_node, targetNode);
@@ -258,7 +258,7 @@ vector<MapNode *> Astar() {
 	if (reversedPtr == 0) {
 		cout << "Target node is unreachable." << endl;
 	}
-	//´ÓÖÕµãÖğ²½×·×Ùparent½Úµãµ½ÆğµãµÃ³öÂ·¾¶
+	//ä»ç»ˆç‚¹é€æ­¥è¿½è¸ªparentèŠ‚ç‚¹åˆ°èµ·ç‚¹å¾—å‡ºè·¯å¾„
 	else {
 		MapNode *_node = reversedPtr;
 		while (_node->parent != 0) {
@@ -267,70 +267,71 @@ vector<MapNode *> Astar() {
 		}
 		reverse(path.begin(), path.end());
 	}
-	//·µ»ØÂ·¾¶
+	//è¿”å›è·¯å¾„
 	return path;
 }
 
-// ·µ»ØÁÚ¾Ó½Úµã
+// è¿”å›é‚»å±…èŠ‚ç‚¹
 vector<MapNode *> neighbors(MapNode *node) {
 	vector<MapNode *> available;
 	MapNode *_node;
-	//Èç¹û¸Ã½ÚµãµÄÁÚ¾ÓÔÚµØÍ¼ÖĞ£¬ÄÇÃ´·µ»Ø
-	// ×ó
+	//å¦‚æœè¯¥èŠ‚ç‚¹çš„é‚»å±…åœ¨åœ°å›¾ä¸­ï¼Œé‚£ä¹ˆè¿”å›
+	// å·¦
 	if ((_node = mapAt(node->x - 1, node->y)) != 0)available.push_back(_node);
-	// ÏÂ
+	// ä¸‹
 	if ((_node = mapAt(node->x, node->y - 1)) != 0)available.push_back(_node);
-	// ÓÒ
+	// å³
 	if ((_node = mapAt(node->x + 1, node->y)) != 0)available.push_back(_node);
-	// ÉÏ
+	// ä¸Š
 	if ((_node = mapAt(node->x, node->y + 1)) != 0)available.push_back(_node);
 
-	if (ALLOW_VERTEX_PASSTHROUGH) { //Èç¹ûÔÊĞíĞ±×Å×ß
-		// ×óÏÂ
+	if (ALLOW_VERTEX_PASSTHROUGH) { //å¦‚æœå…è®¸æ–œç€èµ°
+		// å·¦ä¸‹
 		if ((_node = mapAt(node->x - 1, node->y - 1)) != 0)available.push_back(_node);
-		// ÓÒÏÂ
+		// å³ä¸‹
 		if ((_node = mapAt(node->x + 1, node->y - 1)) != 0)available.push_back(_node);
-		// ÓÒÉÏ
+		// å³ä¸Š
 		if ((_node = mapAt(node->x + 1, node->y + 1)) != 0)available.push_back(_node);
-		// ×óÉÏ
+		// å·¦ä¸Š
 		if ((_node = mapAt(node->x - 1, node->y + 1)) != 0)available.push_back(_node);
 	}
 
 	return available;
 }
 
-//¼ÆËãHÖµ ½Úµãµ½Ä¿±êµãµÄ¹À¼Æ´ú¼Û
+//è®¡ç®—Hå€¼ èŠ‚ç‚¹åˆ°ç›®æ ‡ç‚¹çš„ä¼°è®¡ä»£ä»·
 int computeH(MapNode *node1, MapNode *node2) {
-	//Èç¹ûÔÊĞíĞ±×Å×ß£¬¼ÆËãÅ·ÊÏ¾àÀë
+	//å¦‚æœå…è®¸æ–œç€èµ°ï¼Œè®¡ç®—æ¬§æ°è·ç¦»
 	if (ALLOW_VERTEX_PASSTHROUGH) {
 		double x_distance = double(node2->x) - double(node1->x);
 		double y_distance = double(node2->y) - double(node1->y);
 		double distance2 = pow(x_distance, 2) + pow(y_distance, 2);
 		return int(sqrt(distance2));
 	}
-	//·ñÔò¼ÆËãÂü¹ş¶Ù¾àÀë
+	//å¦åˆ™è®¡ç®—æ›¼å“ˆé¡¿è·ç¦»
 	else {
 		return abs(node2->x - node1->x) + abs(node2->y - node1->y);
 	}
 }
 
-//¼ÆËãGÖµ ´ÓÆğµãµ½µ±Ç°µãµÄÊµ¼Ê´ú¼Û
+//è®¡ç®—Gå€¼ ä»èµ·ç‚¹åˆ°å½“å‰ç‚¹çš„å®é™…ä»£ä»·
 int computeG(MapNode *node1, MapNode *node2) {
-	//Èç¹ûÔÊĞíĞ±×Å×ß£¬¼ÆËãÅ·ÊÏ¾àÀë
+	//å¦‚æœå…è®¸æ–œç€èµ°ï¼Œè®¡ç®—æ¬§æ°è·ç¦»
 	if (ALLOW_VERTEX_PASSTHROUGH) {
 		double x_distance = double(node2->x) - double(node1->x);
 		double y_distance = double(node2->y) - double(node1->y);
 		double distance2 = pow(x_distance, 2) + pow(y_distance, 2);
 		return int(sqrt(distance2));
 	}
-	//·ñÔò¼ÆËãÂü¹ş¶Ù¾àÀë
+	//å¦åˆ™è®¡ç®—æ›¼å“ˆé¡¿è·ç¦»
 	else {
 		return abs(node2->x - node1->x) + abs(node2->y - node1->y);
 	}
 }
 
-// ·µ»Ø×ø±êËù¶ÔÓ¦Ë÷ÒıµÄ½Úµã
+// è¿”å›åæ ‡æ‰€å¯¹åº”ç´¢å¼•çš„èŠ‚ç‚¹
 MapNode *mapAt(int x, int y) {
 	if (x < 0 || y < 0 || x >= mapSize || y >= mapSize)return 0;
 	return &mapData[y * mapSize + x];
 }
+

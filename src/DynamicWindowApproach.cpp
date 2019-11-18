@@ -13,31 +13,31 @@
 using namespace std;
 using namespace cv;
 
-const double max_speed = 1.0; //[m/s] ×î´óËÙ¶È
-const double min_speed = -1.0; //[m/s] ×îĞ¡ËÙ¶È
-const double max_yawrate = 40.0 * pi / 180.0; //[rad/s] ×î´ó½ÇËÙ¶È
-const double max_accel = 0.2;  //[m/ss] ×î´ó¼ÓËÙ¶È
-const double max_dyawrate = 40.0 * pi / 180.0; //[rad/ss] ×î´ó½Ç¼ÓËÙ¶È
-const double v_reso = 0.01;  //²ÉÑùËÙ¶ÈµÄ²½³¤
-const double yawrate_reso = 0.1 * pi / 180.0;  //²ÉÑù½ÇËÙ¶ÈµÄ²½³¤ [rad / s]
+const double max_speed = 1.0; //[m/s] æœ€å¤§é€Ÿåº¦
+const double min_speed = -1.0; //[m/s] æœ€å°é€Ÿåº¦
+const double max_yawrate = 40.0 * pi / 180.0; //[rad/s] æœ€å¤§è§’é€Ÿåº¦
+const double max_accel = 0.2;  //[m/ss] æœ€å¤§åŠ é€Ÿåº¦
+const double max_dyawrate = 40.0 * pi / 180.0; //[rad/ss] æœ€å¤§è§’åŠ é€Ÿåº¦
+const double v_reso = 0.01;  //é‡‡æ ·é€Ÿåº¦çš„æ­¥é•¿
+const double yawrate_reso = 0.1 * pi / 180.0;  //é‡‡æ ·è§’é€Ÿåº¦çš„æ­¥é•¿ [rad / s]
 const double dt = 0.1;  
-const double predict_time = 5.0;  //²ÉÑù¹ì¼£µÄÊ±¼ä
-const double heading_cost_gain = 0.15; //Ä¿±êº¯ÊıÖĞheading·½Î»½ÇÆÀ¼Ûº¯ÊıµÄÏµÊı
-const double speed_cost_gain = 1.0;//Ä¿±êº¯ÊıÖĞËÙ¶ÈÆÀ¼Ûº¯ÊıµÄÏµÊı
-const double obstacle_cost_gain = 1.0;  //Ä¿±êº¯ÊıÖĞdistÆÀ¼Ûº¯ÊıµÄÏµÊı
-const double robot_radius = 1.0;  //»úÆ÷ÈË°ë¾¶
+const double predict_time = 5.0;  //é‡‡æ ·è½¨è¿¹çš„æ—¶é—´
+const double heading_cost_gain = 0.15; //ç›®æ ‡å‡½æ•°ä¸­headingæ–¹ä½è§’è¯„ä»·å‡½æ•°çš„ç³»æ•°
+const double speed_cost_gain = 1.0;//ç›®æ ‡å‡½æ•°ä¸­é€Ÿåº¦è¯„ä»·å‡½æ•°çš„ç³»æ•°
+const double obstacle_cost_gain = 1.0;  //ç›®æ ‡å‡½æ•°ä¸­distè¯„ä»·å‡½æ•°çš„ç³»æ•°
+const double robot_radius = 1.0;  //æœºå™¨äººåŠå¾„
 
-Mat Map;  //µØÍ¼ÎªopencvÉú³ÉµÄÍ¼Æ¬
-int mapSize = 300;  //µØÍ¼´óĞ¡Îª300*300µÄÕı·½ĞÎ
-using position = std::vector<std::array<float, 2>>; //´æ·Åxy×ø±êµÄvector£¬·½±ã»­Í¼
-using State = array<double, 5>; //×´Ì¬
-using Traj = vector<array<double, 5>>; //´æ·Å×´Ì¬µÄ¹ì¼£
-using Control = array<double, 2>; //ËÙ¶È
-using Dynamic_Window = array<double, 4>; //ËÙ¶ÈµÄ¶¯Ì¬´°¿Ú
+Mat Map;  //åœ°å›¾ä¸ºopencvç”Ÿæˆçš„å›¾ç‰‡
+int mapSize = 300;  //åœ°å›¾å¤§å°ä¸º300*300çš„æ­£æ–¹å½¢
+using position = std::vector<std::array<float, 2>>; //å­˜æ”¾xyåæ ‡çš„vectorï¼Œæ–¹ä¾¿ç”»å›¾
+using State = array<double, 5>; //çŠ¶æ€
+using Traj = vector<array<double, 5>>; //å­˜æ”¾çŠ¶æ€çš„è½¨è¿¹
+using Control = array<double, 2>; //é€Ÿåº¦
+using Dynamic_Window = array<double, 4>; //é€Ÿåº¦çš„åŠ¨æ€çª—å£
 
-position start({ {0.0,0.0} });//Æğµã×ø±ê
-position goal({ {100.0,100.0} });//ÖÕµã×ø±ê
-// Ìí¼ÓÕÏ°­×ø±ê
+position start({ {0.0,0.0} });//èµ·ç‚¹åæ ‡
+position goal({ {100.0,100.0} });//ç»ˆç‚¹åæ ‡
+// æ·»åŠ éšœç¢åæ ‡
 position ob({ {{-10.0, -10.0},
 			   {0.0, 20.0},
 			   {40.0, 20.0},
@@ -48,7 +48,7 @@ position ob({ {{-10.0, -10.0},
 			   {80.0, 90.0},
 			   {70.0, 90.0}} });
 
-//³õÊ¼»¯×´Ì¬[x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
+//åˆå§‹åŒ–çŠ¶æ€[x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
 State x{ 0.0, 0.0, pi / 2.0, 0.0, 0.0 };
 
 cv::Point2i cv_offset(float x, float y, int image_width, int image_height);
@@ -63,9 +63,9 @@ Traj dwa_control(State x, Control& u);
 
 int main()
 {
-	//³õÊ¼»¯ËÙ¶È
+	//åˆå§‹åŒ–é€Ÿåº¦
 	Control u{ 0.0, 0.0 };
-	//³õÊ¼»¯¾­Àú×´Ì¬µÄ¹ì¼£
+	//åˆå§‹åŒ–ç»å†çŠ¶æ€çš„è½¨è¿¹
 	Traj traj;
 	traj.push_back(x);
 
@@ -74,63 +74,63 @@ int main()
 		Traj ptraj = dwa_control(x, u);
 		x = motion(x, u);
 		traj.push_back(x);
-		//µØÍ¼»æÖÆ
+		//åœ°å›¾ç»˜åˆ¶
 		drawMap(ptraj);
-		imshow("»­°å", Map);
+		imshow("ç”»æ¿", Map);
 		waitKey(1);
 		if (abs(x[0] - goal[0][0])<3 && abs(x[1] - goal[0][1]) < 3)
 			break;
 	}
-	// ÉèÖÃ´°¿Ú
+	// è®¾ç½®çª—å£
 	Map = Mat::zeros(Size(500, 500), CV_8UC3);
-	Map.setTo(255);              // ÉèÖÃÆÁÄ»Îª°×É«
-	//»æÖÆÕÏ°­ ºÚÉ«
+	Map.setTo(255);              // è®¾ç½®å±å¹•ä¸ºç™½è‰²
+	//ç»˜åˆ¶éšœç¢ é»‘è‰²
 	for (unsigned int j = 0; j < ob.size(); j++) {
 		cv::circle(Map, cv_offset(ob[j][0], ob[j][1], Map.cols, Map.rows),
 			1, cv::Scalar(0, 0, 0), -2);
 	}
-	//»æÖÆÄ¿±ê À¶É«
+	//ç»˜åˆ¶ç›®æ ‡ è“è‰²
 	cv::circle(Map, cv_offset(goal[0][0], goal[0][1], Map.cols, Map.rows),
 		2, cv::Scalar(255, 0, 0), 2);
-	//»æÖÆÆğµã ÂÌÉ«
+	//ç»˜åˆ¶èµ·ç‚¹ ç»¿è‰²
 	cv::circle(Map, cv_offset(start[0][0], start[0][1], Map.cols, Map.rows),
 		2, cv::Scalar(0, 255, 0), 2);
-	//»æÖÆ¹ì¼£
+	//ç»˜åˆ¶è½¨è¿¹
 	for (int j = 0; j < traj.size(); j++) {
 		cv::circle(Map, cv_offset(traj[j][0], traj[j][1], Map.cols, Map.rows),
 			1, cv::Scalar(0, 0, 255), 1);
 	}
-	imshow("»­°å", Map);
+	imshow("ç”»æ¿", Map);
 	waitKey();
 	return 0;
 }
 
 void drawMap(Traj ptraj) {
-	// ÉèÖÃ´°¿Ú
+	// è®¾ç½®çª—å£
 	Map = Mat::zeros(Size(500, 500), CV_8UC3);
-	Map.setTo(255);              // ÉèÖÃÆÁÄ»Îª°×É«
-	//»æÖÆÕÏ°­ ºÚÉ«
+	Map.setTo(255);              // è®¾ç½®å±å¹•ä¸ºç™½è‰²
+	//ç»˜åˆ¶éšœç¢ é»‘è‰²
 	for (unsigned int j = 0; j < ob.size(); j++) {
 		cv::circle(Map, cv_offset(ob[j][0], ob[j][1], Map.cols, Map.rows),
 			1, cv::Scalar(0, 0, 0), -2);
 	}
-	//»æÖÆÄ¿±ê À¶É«
+	//ç»˜åˆ¶ç›®æ ‡ è“è‰²
 	cv::circle(Map, cv_offset(goal[0][0], goal[0][1], Map.cols, Map.rows),
 		2, cv::Scalar(255, 0, 0), 2);
-	//»æÖÆÆğµã ÂÌÉ«
+	//ç»˜åˆ¶èµ·ç‚¹ ç»¿è‰²
 	cv::circle(Map, cv_offset(start[0][0], start[0][1], Map.cols, Map.rows),
 		2, cv::Scalar(0, 255, 0), 2);
-	//»æÖÆµ±Ç°×ø±ê ºìÉ«
+	//ç»˜åˆ¶å½“å‰åæ ‡ çº¢è‰²
 	cv::circle(Map, cv_offset(x[0], x[1], Map.cols, Map.rows),
 		2, cv::Scalar(0, 0, 255), 1);
-	//»æÖÆËÙ¶È´°¿Ú¹ì¼£
+	//ç»˜åˆ¶é€Ÿåº¦çª—å£è½¨è¿¹
 	for (int j = 0; j < ptraj.size(); j++) {
 		cv::circle(Map, cv_offset(ptraj[j][0], ptraj[j][1], Map.cols, Map.rows),
 			1, cv::Scalar(210, 0, 0), 1);
 	}
 }
 
-//opencvÍ¼ÏñµÄ×ø±êºÍ±¾³ÌĞòÖĞMapµÄ×ø±ê¶¨Òå²»Í¬£¬ÓÃ¸Ãº¯Êı°ÑÒ»¸ö×ø±êµã×ª»»ÎªÍ¼ÏñÉÏµÄµã
+//opencvå›¾åƒçš„åæ ‡å’Œæœ¬ç¨‹åºä¸­Mapçš„åæ ‡å®šä¹‰ä¸åŒï¼Œç”¨è¯¥å‡½æ•°æŠŠä¸€ä¸ªåæ ‡ç‚¹è½¬æ¢ä¸ºå›¾åƒä¸Šçš„ç‚¹
 cv::Point2i cv_offset(
 	float x, float y, int image_width = 500, int image_height = 500) {
 	cv::Point2i output;
@@ -141,17 +141,17 @@ cv::Point2i cv_offset(
 	return output;
 };
 
-//¸ù¾İËÙ¶È¼ÆËãÏÂÒ»Ê±¿ÌµÄ×´Ì¬
+//æ ¹æ®é€Ÿåº¦è®¡ç®—ä¸‹ä¸€æ—¶åˆ»çš„çŠ¶æ€
 State motion(State x, Control u) {
-	x[2] += u[1] * dt; //thetaÆ«º½½Ç
-	x[0] += u[0] * cos(x[2])*dt; //x×ø±ê
-	x[1] += u[0] * sin(x[2])*dt; //y×ø±ê
-	x[3] = u[0]; //ÏßËÙ¶È
-	x[4] = u[1]; //½ÇËÙ¶È
+	x[2] += u[1] * dt; //thetaåèˆªè§’
+	x[0] += u[0] * cos(x[2])*dt; //xåæ ‡
+	x[1] += u[0] * sin(x[2])*dt; //yåæ ‡
+	x[3] = u[0]; //çº¿é€Ÿåº¦
+	x[4] = u[1]; //è§’é€Ÿåº¦
 	return x;
 }
 
-//¼ÆËãËÙ¶ÈµÄ¶¯Ì¬´°¿Ú
+//è®¡ç®—é€Ÿåº¦çš„åŠ¨æ€çª—å£
 Dynamic_Window calc_dynamic_window(State x) {
 	return { {max(min_speed,x[3] - max_accel * dt),
 			  min(max_speed,x[3] + max_accel * dt),
@@ -159,7 +159,7 @@ Dynamic_Window calc_dynamic_window(State x) {
 			  min(max_yawrate,x[4] + max_dyawrate * dt)} };
 }
 
-//¸ù¾İËÙ¶ÈÔ¤²âÒ»¶ÎÊ±¼äÄÚµÄ¹ì¼£
+//æ ¹æ®é€Ÿåº¦é¢„æµ‹ä¸€æ®µæ—¶é—´å†…çš„è½¨è¿¹
 Traj predict_trajectory(State x, double v, double w) {
 	Traj traj;
 	traj.push_back(x);
@@ -173,18 +173,18 @@ Traj predict_trajectory(State x, double v, double w) {
 	return traj;
 }
 
-//ÓÃ¶¯Ì¬´°¿Ú·¨¼ÆËã³ö×îÓÅËÙ¶ÈºÍ¹ì¼£
+//ç”¨åŠ¨æ€çª—å£æ³•è®¡ç®—å‡ºæœ€ä¼˜é€Ÿåº¦å’Œè½¨è¿¹
 Traj calc_final_input(State x, Control& u, Dynamic_Window dw) {
 	double min_cost = 1000000.0;
 	Control best_u = { 0.0,0.0 };
 	Traj best_traj;
-	//ÆÀ¹À¶¯Ì¬´°¿ÚÖĞÃ¿Ò»Ìõ¹ì¼£
+	//è¯„ä¼°åŠ¨æ€çª—å£ä¸­æ¯ä¸€æ¡è½¨è¿¹
 	for (double v = dw[0]; v <= dw[1]; v += v_reso)
 	{
 		for (double w = dw[2]; w <= dw[3]; w += yawrate_reso)
 		{
 			Traj traj = predict_trajectory(x, v, w);
-			//¼ÆËãcost
+			//è®¡ç®—cost
 			double to_goal_cost = heading_cost_gain * calc_to_goal_cost(traj);
 			double speed_cost = speed_cost_gain * (max_speed - traj[traj.size() - 1][3]);
 			double ob_cost = obstacle_cost_gain * calc_to_ob_cost(traj);
@@ -200,9 +200,9 @@ Traj calc_final_input(State x, Control& u, Dynamic_Window dw) {
 	return best_traj;
 }
 
-//¼ÆËãµ½Ä¿±êµÄcost
+//è®¡ç®—åˆ°ç›®æ ‡çš„cost
 double calc_to_goal_cost(Traj traj){
-	//¹ì¼£ÖÕµãµÄÆ«º½½ÇºÍ»úÆ÷ÈËµ½Ä¿±êµã¼Ğ½ÇÖ®²î
+	//è½¨è¿¹ç»ˆç‚¹çš„åèˆªè§’å’Œæœºå™¨äººåˆ°ç›®æ ‡ç‚¹å¤¹è§’ä¹‹å·®
 	double dx = goal[0][0] - traj[traj.size() - 1][0];
 	double dy = goal[0][1] - traj[traj.size() - 1][1];
 	double error_angle = atan2(dy, dx);
@@ -210,9 +210,9 @@ double calc_to_goal_cost(Traj traj){
 	return cost;
 }
 
-//¼ÆËãÕÏ°­ÎïµÄcost
+//è®¡ç®—éšœç¢ç‰©çš„cost
 double calc_to_ob_cost(Traj traj) {
-	//¼ÆËãµ±Ç°¹ì¼£µ½ÕÏ°­ÎïµÄ×îĞ¡¾àÀë
+	//è®¡ç®—å½“å‰è½¨è¿¹åˆ°éšœç¢ç‰©çš„æœ€å°è·ç¦»
 	int skip_n = 2;
 	double minr = 1000000.0;
 	for (int i = 0; i < traj.size(); i += skip_n) 
@@ -231,7 +231,7 @@ double calc_to_ob_cost(Traj traj) {
 	return 1.0 / minr;
 }
 
-//¶¯Ì¬´°¿Ú·¨ÇóËÙ¶È·µ»Ø¹ì¼£
+//åŠ¨æ€çª—å£æ³•æ±‚é€Ÿåº¦è¿”å›è½¨è¿¹
 Traj dwa_control(State x, Control& u) {
 	Dynamic_Window dw = calc_dynamic_window(x);
 	Traj traj = calc_final_input(x, u, dw);
