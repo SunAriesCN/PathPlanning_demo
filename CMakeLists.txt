@@ -34,4 +34,4 @@ target_link_libraries(DynamicWindowApproach.exe LINK_PRIVATE ${OpenCV_LIBS})
 target_link_libraries(ArtificialPotentialField.exe LINK_PRIVATE ${OpenCV_LIBS})
 
 # Add header paths
-include_directories( "/usr/include/eigen3" )
+# include_directories( "/usr/include/eigen3" )

@@ -1,5 +1,4 @@
 #include <iostream>
-#include <Eigen/Eigen>
 #include <stdio.h>
 #include <math.h>
 #include <opencv2/opencv.hpp>
@@ -188,7 +187,7 @@ void drawPath(Mat &map, vector<MapNode *> path) {
 		cv::circle(Map, cv_offset(node->x, node->y, Map.cols, Map.rows),
 			2, cv::Scalar(0, 200, 155), 2);
 		imshow("画板", Map);
-		waitKey();
+		waitKey(1);
 		cout << "->(" << node->x << "," << node->y << ")";
 	}
 	imshow("画板", Map);
